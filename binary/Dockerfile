@@ -103,7 +103,7 @@ RUN docker-php-source extract; \
         zip ; \
     docker-php-source delete
 
-COPY ./phpbinary.sh  /phpbinary.sh
+COPY phpbinary.sh  /phpbinary.sh
 RUN chmod +x /phpbinary.sh; /phpbinary.sh
 
 FROM alpine:3.11
