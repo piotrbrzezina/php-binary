@@ -1,0 +1,13 @@
+#!/bin/sh
+
+for libraryName in "$@"
+do
+  echo $libraryName
+  files=$(cat "/phpbinary/apk/${libraryName}" )
+  for file in $files
+  do
+    fileDir=$(dirname "${file}")
+    mkdir -p $fileDir
+    cp "/phpbinary/files/${file}" $file
+  done
+done

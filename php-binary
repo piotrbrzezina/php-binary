@@ -1,0 +1,99 @@
+#!/bin/sh
+mkdir -p /phpbinary
+
+copyFile()
+{
+  sorceFile=$1
+  binaryName=$2
+  libraryPatchDest="/phpbinary/files/${sorceFile}"
+  libraryDir=$(dirname "${libraryPatchDest}")
+
+  mkdir -p $libraryDir
+  mkdir -p '/phpbinary/apk/'
+  cp $sorceFile $libraryPatchDest
+  echo $sorceFile >> "/phpbinary/apk/${binaryName}"
+}
+
+getExtension()
+{
+  sorceFile=$1
+  binaryName=$2
+  copyFile "${sorceFile}" "${binaryName}"
+
+  librarys=$(readelf -d $sorceFile | grep 'NEEDED' | grep -E -o '\[(.*?)\]')
+  for library in $librarys
+  do
+    library=${library#"["}
+    library=${library%"]"}
+    libraryPatch=$(find / -name "$library" -xdev| head -n 1)
+    if [ -n "${libraryPatch##*phpbinary*}" ]; then
+      getExtension "${libraryPatch}" "${binaryName}"
+    fi
+  done
+}
+# prepare php binary
+echo curl
+getExtension /usr/bin/curl curl
+
+# prepare php binary
+echo php
+cp  /usr/local/etc/php/php.ini-development /usr/local/etc/php/php.ini-development.default
+cp  /usr/local/etc/php/php.ini-production /usr/local/etc/php/php.ini-production.default
+cat /usr/local/etc/php/php.ini-development | grep "^[^#;]" | awk -F= '!($1 in settings) {settings[$1] = $2; print}' > /usr/local/etc/php/php.ini-development
+cat /usr/local/etc/php/php.ini-production | grep "^[^#;]" | awk -F= '!($1 in settings) {settings[$1] = $2; print}' > /usr/local/etc/php/php.ini
+
+getExtension /usr/local/bin/php php
+copyFile /usr/local/etc/php/php.ini-development.default php
+copyFile /usr/local/etc/php/php.ini-production.default php
+copyFile /usr/local/etc/php/php.ini-development php
+copyFile /usr/local/etc/php/php.ini php
+
+#  prepare php binary
+if [ -f /usr/local/sbin/php-fpm ]
+then
+    echo php-fpm
+    cp /usr/local/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf.default
+    cat  /usr/local/etc/php-fpm.d/docker.conf /usr/local/etc/php-fpm.d/www.conf.default /usr/local/etc/php-fpm.d/zz-docker.conf |  grep "^[^#;]"  > /usr/local/etc/php-fpm.d/www.conf
+    cat /usr/local/etc/php-fpm.conf | grep "^[^#;]" | awk -F= '!($1 in settings) {settings[$1] = $2; print}' > /usr/local/etc/php-fpm2.conf
+    echo '[www]' >> /usr/local/etc/php-fpm.d/docker-healthcheck.conf
+    echo 'ping.path = /ping' >> /usr/local/etc/php-fpm.d/docker-healthcheck.conf
+
+    getExtension /usr/local/sbin/php-fpm php-fpm
+    copyFile /usr/local/etc/php-fpm.conf.default php-fpm
+    copyFile /usr/local/etc/php-fpm.conf php-fpm
+    copyFile /usr/local/etc/php-fpm.d/www.conf php-fpm
+    copyFile /usr/local/etc/php-fpm.d/docker-healthcheck.conf php-fpm
+
+fi
+
+echo pear
+copyFile /usr/local/bin/pear pear
+
+echo peardev
+copyFile /usr/local/bin/peardev peardev
+
+echo pecl
+copyFile /usr/local/bin/pecl pecl
+
+echo phar.phar
+copyFile /usr/local/bin/phar.phar phar.phar
+
+echo phpdbg
+getExtension /usr/local/bin/phpdbg phpdbg
+
+echo phar
+copyFile /usr/local/bin/phar phar
+
+extDir="$(php -d 'display_errors=stderr' -r 'echo ini_get("extension_dir");')"
+
+for libraryPath in "$extDir"/*
+do
+   library=$(basename "$libraryPath")
+   library=${library%".so"}
+   echo $library
+   extensionIni=$(find / -name "docker-php-ext-$library.ini" | head -n 1)
+   if [ -n "$extensionIni" ]; then
+     copyFile "${extensionIni}" "${library}"
+   fi
+   getExtension "$libraryPath" "$library"
+done

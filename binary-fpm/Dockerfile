@@ -35,6 +35,7 @@ RUN apk add \
        libzip-dev \
        libxslt-dev \
        libsodium-dev \
+       libmemcached-dev \
        argon2-libs
 
 RUN docker-php-source extract; \
@@ -101,10 +102,30 @@ RUN docker-php-source extract; \
         xmlwriter \
 #        xsl \
         zip ; \
+    echo ''| pecl install \
+        mongodb \
+        apcu \
+        redis \
+        memcached \
+        xdebug; \
+    docker-php-ext-enable \
+        mongodb \
+        apcu \
+        redis \
+        memcached \
+        xdebug; \
     docker-php-source delete
 
-COPY phpbinary.sh  /phpbinary.sh
-RUN chmod +x /phpbinary.sh; /phpbinary.sh
+COPY /php-binary /usr/local/bin
+COPY /docker-php-entrypoint /docker-healthcheck /php-install /php-binary-remove /docker/
+RUN chmod +x /usr/local/bin/php-binary; \
+    chmod +x /docker/php-install; \
+    chmod +x /docker/php-binary-remove; \
+    chmod +x /docker/docker-php-entrypoint; \
+    chmod +x /docker/docker-healthcheck; \
+    php-binary
 
 FROM alpine:3.11
-COPY --from=builder /phpbinary/* /phpbinary/
+COPY --from=builder /phpbinary /phpbinary
+COPY --from=builder /docker /usr/local/bin
+
