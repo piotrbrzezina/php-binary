@@ -1,4 +1,4 @@
-FROM php:7.4.1-fpm-alpine3.11 as builder
+FROM php:7.4.2-fpm-alpine3.11 as builder
 
 RUN apk add \
        autoconf \

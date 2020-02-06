@@ -1,4 +1,4 @@
-FROM php:7.4.1-fpm-alpine3.11 as builder
+FROM php:7.4.2-fpm-alpine3.11 as builder
 
 RUN apk add \
        autoconf \
@@ -35,6 +35,7 @@ RUN apk add \
        libzip-dev \
        libxslt-dev \
        libsodium-dev \
+       libmemcached-dev \
        argon2-libs
 
 RUN docker-php-source extract; \
@@ -101,13 +102,27 @@ RUN docker-php-source extract; \
         xmlwriter \
 #        xsl \
         zip ; \
+    echo ''| pecl install \
+        mongodb \
+        apcu \
+        redis \
+        memcached \
+        xdebug; \
+    docker-php-ext-enable \
+        mongodb \
+        apcu \
+        redis \
+        memcached \
+        xdebug; \
     docker-php-source delete
 
 COPY /php-binary /usr/local/bin
-COPY /docker-php-entrypoint /php-install  /docker/
+COPY /docker-php-entrypoint /docker-healthcheck /php-install /php-binary-remove /docker/
 RUN chmod +x /usr/local/bin/php-binary; \
     chmod +x /docker/php-install; \
+    chmod +x /docker/php-binary-remove; \
     chmod +x /docker/docker-php-entrypoint; \
+    chmod +x /docker/docker-healthcheck; \
     php-binary
 
 FROM alpine:3.11
