@@ -81,6 +81,9 @@ copyFile /usr/local/bin/phar.phar phar.phar
 echo phpdbg
 getExtension /usr/local/bin/phpdbg phpdbg
 
+echo cgi-fcgi
+getExtension /usr/bin/cgi-fcgi cgi-fcgi
+
 echo phar
 copyFile /usr/local/bin/phar phar
 
