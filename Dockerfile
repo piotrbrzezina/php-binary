@@ -137,9 +137,7 @@ RUN chmod +x /usr/local/bin/php-binary; \
     ;
 
 FROM alpine:3.11
-RUN apk add \
-        fcgi \
-    ;
+RUN apk add fcgi;
 COPY --from=builder /phpbinary /phpbinary
 COPY --from=builder /docker /usr/local/bin
 
