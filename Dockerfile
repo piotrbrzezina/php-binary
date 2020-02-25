@@ -1,8 +1,7 @@
 ARG APCU_VERSION=5.1.18
-ARG PHP_VERSION=7.4.1
+ARG PHP_VERSION=7.4.3
 
 FROM php:${PHP_VERSION}-fpm-alpine3.11 as builder
-
 RUN apk add \
        autoconf \
        dpkg-dev \
@@ -114,15 +113,10 @@ RUN docker-php-source extract; \
             redis \
             memcached \
             xdebug \
-            apcu-${APCU_VERSION} \
-        ; \
-    docker-php-ext-enable \
-            mongodb \
             apcu \
-            redis \
-            memcached \
-            xdebug \
         ; \
+    PHP_EXT=$(find $(php -d 'display_errors=stderr' -r 'echo ini_get("extension_dir");')   -maxdepth 1 -type f -name '*.so' -exec basename '{}' ';' | sort  | xargs); \
+    docker-php-ext-enable $PHP_EXT; \
     docker-php-source delete \
     ;
 
