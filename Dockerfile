@@ -3,11 +3,15 @@ ARG PHP_VERSION=7.4.3
 
 FROM php:${PHP_VERSION}-fpm-alpine3.11 as builder
 RUN apk add \
+       zlib-dev \
        autoconf \
        dpkg-dev \
        file \
        g++ \
        gcc \
+       freetype-dev \
+       libjpeg-turbo-dev \
+       libpng-dev \
        libc-dev \
        make \
        re2c \
@@ -51,9 +55,11 @@ RUN docker-php-source extract; \
 	} > temp.m4; \
 	mv temp.m4 /usr/src/php/ext/odbc/config.m4; \
     docker-php-ext-configure odbc --with-unixODBC=shared,/usr; \
+    docker-php-ext-configure gd --with-jpeg; \
     docker-php-ext-configure pdo_odbc --with-pdo-odbc=unixODBC,/usr; \
+    docker-php-ext-configure zip --with-libzip; \
     docker-php-ext-install  \
-             odbc \
+            odbc \
             bcmath \
             ldap \
             mbstring \
@@ -114,6 +120,8 @@ RUN docker-php-source extract; \
             memcached \
             xdebug \
             apcu \
+            zlib \
+            zip \
         ; \
     PHP_EXT=$(find $(php -d 'display_errors=stderr' -r 'echo ini_get("extension_dir");')   -maxdepth 1 -type f -name '*.so' -exec basename '{}' ';' | sort  | xargs); \
     docker-php-ext-enable $PHP_EXT; \
